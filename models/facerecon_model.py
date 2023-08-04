@@ -861,7 +861,8 @@ class FaceReconModel(BaseModel):
 
                     cat_image = np.concatenate([static_image, video_1_i, video_2_i], axis=1)
                     gif_images.append(cat_image[..., ::-1])
-                imageio.mimsave(os.path.join(out_dir, save_name + '_{}_hrn_output.gif'.format(i)), gif_images, fps=25)
+                # imageio.mimsave(os.path.join(out_dir, save_name + '_{}_hrn_output.gif'.format(i)), gif_images, fps=25)      # original
+                imageio.mimsave(os.path.join(out_dir, save_name + '_{}_hrn_output.gif'.format(i)), gif_images, duration=25)   # Bernardo
 
         return results
 

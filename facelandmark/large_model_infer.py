@@ -268,7 +268,6 @@ class LargeModelInfer:
 
 
 
-
     def face2contour(self, image, stack_mode="column"):
         '''
 
@@ -346,9 +345,7 @@ class LargeModelInfer:
 
     def fat_face(self,img, degree= 0.1):
         t1 = time.time()
-
         _img, scale = resize_on_long_side(img, 400)
-
         contour_maps, boxes = self.find_face_contour(_img)
 
         # print('|' * 50, 'time find_face_contour: {}'.format(time.time() - t1))

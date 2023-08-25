@@ -70,9 +70,6 @@ def run_hrn(args):
     inappropriate_found, num_inappropriate_found = search_save_inappropriate_files(names, str_search, path_inappropriate_list)
     if inappropriate_found:
         raise Exception(str(num_inappropriate_found)+' inappropriate files found. List of files saved in \''+str(path_inappropriate_list)+'\'')
-    else:
-        print(f'No files found containing \'{str_search}\' substring!\n')
-
 
     if not os.path.isdir(args.output_root):
         os.makedirs(args.output_root, exist_ok=True)
@@ -97,7 +94,7 @@ def run_hrn(args):
         print('name:', name)
         # save_name = os.path.splitext(name)[0]                                         # original
         save_name = os.path.splitext(name)[0].replace(args.input_root, '').strip('/')   # Bernardo
-        sub_dirs, save_name = save_name.split('/')
+        sub_dirs, save_name = '/'.join(save_name.split('/')[:-1]), save_name.split('/')[-1]
         print('args.output_root:', args.output_root)
         print('sub_dirs:', sub_dirs)
         print('save_name:', save_name)

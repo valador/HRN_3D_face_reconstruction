@@ -26,15 +26,6 @@ def find_files(directory, extension, sort=True):
     if sort:
         matching_files.sort()
     return matching_files
-    
-
-def random_select_elements(arr, n):
-    if n > len(arr):
-        return arr
-
-    indices = np.random.choice(len(arr), n, replace=False)
-    selected_elements = arr[indices]
-    return selected_elements
 
 
 def main(args):
@@ -53,7 +44,7 @@ def main(args):
         # print('type(pointcloud):', type(pointcloud))
         print('pointcloud.shape:', pointcloud.shape)
 
-        sampl_pc = random_select_elements(pointcloud, args.sampling_points)
+        sampl_pc = ut.random_select_vertices(pointcloud, args.sampling_points)
         print('sampl_pc.shape:', sampl_pc.shape)
 
         file_name, file_ext = input_path.split('/')[-1].split('.')

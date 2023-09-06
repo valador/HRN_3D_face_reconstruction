@@ -754,3 +754,12 @@ def write_video(image_list, save_path, fps=20.0):
         out.write(frame)
 
     out.release()
+
+
+# Bernardo
+def random_select_vertices(arr, n):
+    if n > len(arr):
+        return arr
+    indices = np.random.choice(len(arr), n, replace=False)
+    selected_elements = arr[indices]
+    return selected_elements

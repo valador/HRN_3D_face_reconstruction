@@ -8,7 +8,8 @@ from .losses import perceptual_loss, photo_loss, reg_loss, reflectance_loss, lan
 from util import util_
 from util.nv_diffrast import MeshRenderer
 import os
-from util.util_ import read_obj, write_obj2, viz_flow, split_vis, estimate_normals, write_video, crop_mesh
+from util.util_ import read_obj, write_obj2, viz_flow, split_vis, estimate_normals, write_video, crop_mesh, \
+                       random_select_vertices
 import time
 from models.de_retouching_module import DeRetouchingModule
 from pix2pix.pix2pix_model import Pix2PixModel
@@ -830,6 +831,12 @@ class FaceReconModel(BaseModel):
             keep_inds = np.where((vertices_zero[:, 0] * vertices_zero[:, 1] * vertices_zero[:, 2]) == False)[0]
             dense_mesh, _ = crop_mesh(dense_mesh, keep_inds)  # remove the redundant vertices and faces
             write_obj2(os.path.join(out_dir, save_name + '_{}_hrn_high_mesh.obj'.format(i)), dense_mesh)
+
+            # Bernardo
+            sampl_points = 10000
+            path_dense_mesh_sampl = os.path.join(out_dir, save_name + f'_{i}_hrn_high_mesh_{sampl_points}points.npy')
+            dense_mesh_sampl = random_select_vertices(dense_mesh['vertices'], sampl_points)
+            np.save(path_dense_mesh_sampl, dense_mesh_sampl)
 
             pred_face_gray_list = []
             if 'pred_face_high_gray_list' in self.extra_results:

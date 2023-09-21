@@ -32,7 +32,8 @@ if __name__ == '__main__':
     tgt_path = '/datasets1/bjgbiesseck/MS-Celeb-1M/ms1m-retinaface-t1/3D_reconstruction/HRN'          # duo
 
     
-    nums_subjects_symb_links = [1000]
+    # nums_subjects_symb_links = [1000]
+    nums_subjects_symb_links = [2000, 5000]
     # nums_subjects_symb_links = [1000, 2000, 5000]
     # nums_subjects_symb_links = [1000, 2000, 5000, 10000]
 

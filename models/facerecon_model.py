@@ -8,7 +8,7 @@ from .losses import perceptual_loss, photo_loss, reg_loss, reflectance_loss, lan
 from util import util_
 from util.nv_diffrast import MeshRenderer
 import os
-from util.util_ import read_obj, write_obj2, viz_flow, split_vis, estimate_normals, write_video, crop_mesh, \
+from util.util_ import read_obj, write_obj, write_obj2, viz_flow, split_vis, estimate_normals, write_video, crop_mesh, \
                        random_select_vertices
 import time
 from models.de_retouching_module import DeRetouchingModule
@@ -782,6 +782,53 @@ class FaceReconModel(BaseModel):
             self.output_vis = torch.tensor(
                 output_vis_numpy / 255., dtype=torch.float32
             ).permute(0, 3, 1, 2).to(self.device)
+
+
+    # Bernardo
+    def save_results_only_sampled(self, out_dir, save_name='test'):
+        self.compute_visuals_hrn()
+        results = self.get_current_visuals()
+
+        batch_size = results['output_vis'].shape[0]
+
+        hrn_output_vis_batch = (255.0 * results['output_vis']).permute(0, 2, 3, 1).detach().cpu().numpy()[..., ::-1]
+
+        vertices_batch = self.pred_vertex.detach()  # get reconstructed shape, [1, 35709, 3]
+        vertices_batch[..., -1] = 10 - vertices_batch[..., -1]  # from camera space to world space
+        vertices_batch = vertices_batch.cpu().numpy()
+
+        # dense mesh
+        dense_vertices_batch = self.extra_results['dense_mesh']['vertices']
+        dense_vertices_batch = dense_vertices_batch.detach().cpu().numpy()
+        dense_faces_batch = self.extra_results['dense_mesh']['faces'].detach().cpu().numpy()
+
+        texture_map_batch = (255.0 * self.pred_color_high).permute(0, 2, 3, 1).detach().cpu().numpy()[..., ::-1]
+
+        for i in range(batch_size):
+            # export mesh with mid and high frequency details
+            dense_mesh = {
+                'vertices': dense_vertices_batch[i],
+                'faces': dense_faces_batch[i],
+            }
+            vertices_zero = dense_mesh['vertices'] == 0.0
+            keep_inds = np.where((vertices_zero[:, 0] * vertices_zero[:, 1] * vertices_zero[:, 2]) == False)[0]
+            dense_mesh, _ = crop_mesh(dense_mesh, keep_inds)  # remove the redundant vertices and faces
+            # write_obj2(os.path.join(out_dir, save_name + '_{}_hrn_high_mesh.obj'.format(i)), dense_mesh)
+
+            # Bernardo
+            sampl_points = 10000
+            dense_mesh_sampl = random_select_vertices(dense_mesh['vertices'], sampl_points)
+
+            path_dense_mesh_sampl = os.path.join(out_dir, save_name + f'_{i}_hrn_high_mesh_{sampl_points}points.npy')
+            print(f'Saving {path_dense_mesh_sampl}')
+            np.save(path_dense_mesh_sampl, dense_mesh_sampl)
+
+            # path_dense_mesh_sampl_obj = os.path.join(out_dir, save_name + f'_{i}_hrn_high_mesh_{sampl_points}points.obj')
+            # print(f'Saving {path_dense_mesh_sampl_obj}')
+            # write_obj(path_dense_mesh_sampl_obj, dense_mesh_sampl)
+
+        return results
+
 
     def save_results(self, out_dir, save_name='test'):
         self.compute_visuals_hrn()

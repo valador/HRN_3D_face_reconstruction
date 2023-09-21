@@ -470,6 +470,147 @@ class Reconstructor():
             # print('save results', time.time() - t1)
 
         return output
+    
+
+    # Bernardo
+    def predict_base_no_face_detection_save_only_sampled(self, img, out_dir=None, save_name=''):
+
+        timestamp = time.strftime("%Y%m%d-%H%M%S", time.localtime())
+        if save_name != '':
+            img_name = save_name
+        else:
+            img_name = 'face-reconstruction_' + timestamp
+
+        # img_ori = img.copy()
+        if img.shape[0] > 2000 or img.shape[1] > 2000:
+            img, _ = resize_on_long_side(img, 1500)
+
+        # if out_dir is not None:
+        #     img_path = os.path.join(out_dir, img_name + '_img.jpg')
+        #     cv2.imwrite(img_path, img)
+
+        '''
+        box, results = self.face_mark_model.infer(img)
+        '''
+
+        '''
+        if results is None or np.array(results).shape[0] == 0:
+            return {}
+        '''
+
+        # t1 = time.time()
+        # fatbgr = self.face_mark_model.fat_face(img, degree=0.005)
+        # print('-' * 50, 'fat face', time.time() - t1)
+        fatbgr = None
+
+        '''
+        landmarks = []
+        results = results[0]
+        for idx in [74, 83, 54, 84, 90]:
+            landmarks.append([results[idx][0], results[idx][1]])
+        landmarks = np.array(landmarks)
+        '''
+
+        # Bernardo
+        landmarks_percent_face_not_det = np.array([[0.341916071428571, 0.461574107142857],
+                                                   [0.656533928571429, 0.459833928571429],
+                                                   [0.500225,          0.640505357142857],
+                                                   [0.370975892857143, 0.824691964285714],
+                                                   [0.631516964285714, 0.823250892857143]], dtype=np.float32)
+        landmarks_coords_face_not_det = np.zeros((landmarks_percent_face_not_det.shape), dtype=int)
+        landmarks_coords_face_not_det[:,0] = landmarks_percent_face_not_det[:,0] * img.shape[1]
+        landmarks_coords_face_not_det[:,1] = landmarks_percent_face_not_det[:,1] * img.shape[0]
+        landmarks = landmarks_coords_face_not_det.astype(int)
+
+        landmarks = self.prepare_data(img, self.lm_sess, five_points=landmarks)
+
+        im_tensor, lm_tensor, im_hd_tensor, lm_hd_tensor, mask = self.read_data(img, landmarks, self.lm3d_std, image_res=512, img_fat=fatbgr)
+        # M = estimate_norm(lm_tensor.numpy()[0], im_tensor.shape[2])
+        # M_tensor = self.parse_label(M)[None, ...]
+        data = {
+            'imgs': im_tensor,
+            'imgs_hd': im_hd_tensor,
+            'lms': lm_tensor,
+            'lms_hd': lm_hd_tensor,
+            # 'M': M_tensor,
+            # 'msks': att_mask,
+            'img_name': img_name,
+            'face_mask': mask,
+        }
+        self.model.set_input_base(data)  # unpack data from data loader
+
+        output = self.model.predict_results_base()  # run inference
+
+        '''
+        if out_dir is not None:
+            t1 = time.time()
+
+            # save texture map
+            tex_map = (output['texture_map'][0] * 255.0).detach().cpu().numpy()[..., ::-1]
+            cv2.imwrite(os.path.join(out_dir, img_name + '_texOri.jpg'), tex_map)
+
+            # t2 = time.time()
+            # # save mesh
+            # color_map = (output['color_map'].permute(0, 2, 3, 1)[0] * 255.0).detach().cpu().numpy()
+            # color_map = color_map[..., ::-1].clip(0, 255)
+            # face_mesh = {
+            #     'vertices': output['vertices'][0].detach().cpu().numpy(),
+            #     'faces': output['triangles'] + 1,
+            #     'UVs': output['UVs'],
+            #     'texture_map': color_map
+            # }
+            # write_obj2(os.path.join(out_dir, img_name + '.obj'), mesh=face_mesh)
+            # print('save mesh', time.time() - t2)
+
+            # save coefficients
+            coeffs = output['coeffs'].detach().cpu().numpy()  # (1, 257)
+            np.save(os.path.join(out_dir, img_name + '_coeffs'), coeffs)
+
+            # # save albedo map
+            # albedo_map = (output['albedo_map'].permute(0, 2, 3, 1)[0] * 255.0).detach().cpu().numpy()
+            # albedo_map = albedo_map[..., ::-1]
+            # cv2.imwrite(os.path.join(out_dir, img_name + '_albedo_map.jpg'), albedo_map)
+
+            # save position map
+            position_map = output['position_map'].detach().cpu().numpy()  # (1, 3, h, w)
+            np.save(os.path.join(out_dir, img_name + '_position_map'), position_map)
+            position_map_vis = position_map.transpose(0, 2, 3, 1)[0, ..., ::-1]
+            position_map_vis = 255.0 * (position_map_vis - position_map_vis.min()) / (position_map_vis.max() - position_map_vis.min())
+            cv2.imwrite(os.path.join(out_dir, img_name + '_position_map_vis.jpg'), position_map_vis)
+
+            # save input face
+            input_face = output['input_face']
+            cv2.imwrite(os.path.join(out_dir, img_name + '_01_input_face.jpg'), input_face)
+
+            # save pred face
+            pred_face = output['pred_face']
+            cv2.imwrite(os.path.join(out_dir, img_name + '_02_pred_face.jpg'), pred_face)
+
+            # save input face hd
+            input_face_hd = output['input_face_hd']
+            cv2.imwrite(os.path.join(out_dir, img_name + '_03_input_face_hd.jpg'), input_face_hd)
+
+            # save gt lms
+            gt_lm = output['gt_lm'].detach().cpu().numpy()  # (1, 68, 2)
+            np.save(os.path.join(out_dir, img_name + '_lmks'), gt_lm)
+
+            # save face mask
+            face_mask = (output['face_mask'][0, 0] * 255.0).detach().cpu().numpy()
+            cv2.imwrite(os.path.join(out_dir, img_name + '_face_mask.jpg'), face_mask)
+
+            # save tex valid mask
+            face_mask = (output['tex_valid_mask'][0, 0] * 255.0).detach().cpu().numpy()
+            cv2.imwrite(os.path.join(out_dir, img_name + '_tex_valid_mask.jpg'), face_mask)
+
+            # save de-retouched albedo map
+            de_retouched_albedo_map = (output['de_retouched_albedo_map'].permute(0, 2, 3, 1)[0] * 255.0).detach().cpu().numpy()
+            de_retouched_albedo_map = de_retouched_albedo_map[..., ::-1]
+            cv2.imwrite(os.path.join(out_dir, img_name + '_de_retouched_albedo_map.jpg'), de_retouched_albedo_map)
+
+            # print('save results', time.time() - t1)
+        '''
+
+        return output
 
 
     def predict(self, args, img, visualize=False, out_dir=None, save_name=''):
@@ -481,7 +622,10 @@ class Reconstructor():
                 output = self.predict_base(img, out_dir, save_name)                          # Bernardo
                 output['input_img_for_tex'] = self.get_img_for_texture(output['input_img'])  # original
             else:
-                output = self.predict_base_no_face_detection(img, out_dir, save_name)                          # Bernardo
+                if not args.save_only_sampled:
+                    output = self.predict_base_no_face_detection(img, out_dir, save_name)                      # Bernardo
+                else:
+                    output = self.predict_base_no_face_detection_save_only_sampled(img, out_dir, save_name)    # Bernardo
                 output['input_img_for_tex'] = self.get_img_for_texture_no_face_detection(output['input_img'])  # Bernardo
 
             hrn_input = {
@@ -506,10 +650,10 @@ class Reconstructor():
             output['displacement_map'] = self.model.displacement_map
 
             if out_dir is not None:
-                t1 = time.time()
-                results = self.model.save_results(out_dir, save_name)
-                print('save results', time.time() - t1)
-
+                if args.save_only_sampled:   # Bernardo
+                    results = self.model.save_results_only_sampled(out_dir, save_name)
+                else:
+                    results = self.model.save_results(out_dir, save_name)
                 output['hrn_output_vis'] = results['output_vis']
 
         return output

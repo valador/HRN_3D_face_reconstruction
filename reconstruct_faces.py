@@ -1,4 +1,4 @@
-import os, sys
+import os, sys, time
 from models.hrn import Reconstructor
 import cv2
 from tqdm import tqdm
@@ -103,7 +103,10 @@ def run_hrn(args):
         os.makedirs(out_dir, exist_ok=True)
         img = cv2.imread(os.path.join(args.input_root, name))
         print('os.path.join(args.input_root, name):', os.path.join(args.input_root, name))
+
+        t1 = time.time()
         output = reconstructor.predict(args, img, visualize=True, out_dir=out_dir, save_name=save_name)
+        print(f'save results: {time.time() - t1} sec')
         print('----------------')
         # sys.exit(0)
 
@@ -155,6 +158,7 @@ if __name__ == '__main__':
     # Bernardo
     parser.add_argument('--find_substring', type=str, default='', help='directory for saving results')
     parser.add_argument('--no_face_align', action='store_true')
+    parser.add_argument('--save_only_sampled', action='store_true')
     
     args = parser.parse_args()
 

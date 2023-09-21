@@ -617,7 +617,7 @@ class Reconstructor():
         with torch.no_grad():
 
             # Bernardo
-            if not args.no_face_align:
+            if not hasattr(args, 'no_face_align') or not args.no_face_align:
                 # output = self.predict_base(img)                                            # original
                 output = self.predict_base(img, out_dir, save_name)                          # Bernardo
                 output['input_img_for_tex'] = self.get_img_for_texture(output['input_img'])  # original
